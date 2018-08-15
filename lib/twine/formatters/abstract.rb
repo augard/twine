@@ -61,6 +61,39 @@ module Twine
           @twine_file.add_language_code(lang)
         end
       end
+      
+      def set_plural_translation_for_key(key, lang, plural_hash)
+        if @twine_file.definitions_by_key.include?(key)
+          definition = @twine_file.definitions_by_key[key]
+          reference = @twine_file.definitions_by_key[definition.reference_key] if definition.reference_key
+              
+          if !reference or value != reference.plural_translations[lang]
+            definition.plural_translations[lang] = value
+          end
+        elsif @options[:consume_all]
+          Twine::stderr.puts "Adding new plural definition '#{key}' to twine file."
+          current_section = @twine_file.sections.find { |s| s.name == 'Uncategorized' }
+          unless current_section
+            current_section = TwineSection.new('Uncategorized')
+            @twine_file.sections.insert(0, current_section)
+          end
+          current_definition = TwineDefinition.new(key)
+          current_definition.plural_translations[lang] = plural_hash
+          current_section.definitions << current_definition
+              
+          if @options[:tags] && @options[:tags].length > 0
+            current_definition.tags = @options[:tags]
+          end
+              
+          @twine_file.definitions_by_key[key] = current_definition
+        else
+          Twine::stderr.puts "Warning: '#{key}' not found in twine file."
+        end
+        
+        if !@twine_file.language_codes.include?(lang)
+          @twine_file.add_language_code(lang)
+        end
+      end
 
       def set_comment_for_key(key, comment)
         return unless @options[:consume_comments]

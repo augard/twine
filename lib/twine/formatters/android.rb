@@ -31,6 +31,12 @@ module Twine
       def default_file_name
         'strings.xml'
       end
+      
+      def iosify_substitutions(str)
+        # use "@" instead of "s" for substituting strings
+        str.gsub!(/%([0-9\$]*)s/, '%\1@')
+        return str
+      end
 
       def determine_language_given_path(path)
         path_arr = path.split(File::SEPARATOR)
@@ -57,6 +63,24 @@ module Twine
       end
 
       def set_translation_for_key(key, lang, value)
+        ref_regex = /@\w+\/(\w+)/
+          
+        value.gsub!(/\r\s*/," ")
+        value.gsub!(/\n\s*/," ")
+        value.gsub!(/\r\n\s*/," ")
+        value.gsub!(/>\s*</,">\n<")
+          
+        ref_match = ref_regex.match(value)
+          
+        if ref_match
+          ref = ref_match[1]
+          if @twine_file.definitions_by_key.include?(ref)
+            value = @twine_file.definitions_by_key[ref].translations[lang]
+          else
+            value = ""
+          end
+        end
+          
         value = CGI.unescapeHTML(value)
         value.gsub!('\\\'', '\'')
         value.gsub!('\\"', '"')
@@ -75,13 +99,32 @@ module Twine
             content = child.string.strip
             comment = content if content.length > 0 and not content.start_with?("SECTION:")
           elsif child.is_a? REXML::Element
-            next unless child.name == 'string'
+            next unless ['plurals', 'string', 'color'].include? child.name
 
             key = child.attributes['name']
-
-            set_translation_for_key(key, lang, child.text)
+            value = child.text
+            value = "" if value.nil?
+            
+            if child.name == 'plurals'
+              plurals_hash = Hash.new
+                
+              child.children.each do |pluralitem|
+                if pluralitem.is_a? REXML::Element
+                  next unless pluralitem.name == 'item'
+                        
+                  quantity = pluralitem.attributes['quantity']
+                  pluraltext = pluralitem.text
+                        
+                  plurals_hash[quantity] = pluraltext
+                end
+              end
+                    
+              set_plural_translation_for_key(key, lang, plurals_hash)
+            else
+              set_translation_for_key(key, lang, value)
+            end
+            
             set_comment_for_key(key, comment) if comment
-
             comment = nil
           end 
         end

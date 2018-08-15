@@ -215,7 +215,12 @@ module Twine
           section.definitions.each do |definition|
             f.puts "\t[#{definition.key}]"
 
-            value = write_value(definition, dev_lang, f)
+            if definition.is_plural?
+                value = write_plural_value(definition, dev_lang, f)
+            else
+                value = write_value(definition, dev_lang, f)
+            end
+            
             if !value && !definition.reference_key
               puts "Warning: #{definition.key} does not exist in developer language '#{dev_lang}'"
             end
@@ -252,5 +257,19 @@ module Twine
       return value
     end
 
+    def write_plural_value(definition, language, file)
+      pluralvalue = definition.plural_translations[language]
+      return nil unless pluralvalue
+      
+      pluralvalue.each do |pluralkey, value|
+        if value[0] == ' ' || value[-1] == ' ' || (value[0] == '`' && value[-1] == '`')
+          value = '`' + value + '`'
+        end
+        
+        file.puts "\t\t#{language} :#{pluralkey} = #{value}"
+      end
+      
+      return pluralvalue
+    end
   end
 end
