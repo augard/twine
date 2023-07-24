@@ -309,8 +309,10 @@ module Twine
       external_encoding = @options[:encoding] || Twine::Encoding.encoding_for_path(path)
 
       IO.open(IO.sysopen(path, 'rb'), 'rb', external_encoding: external_encoding, internal_encoding: 'UTF-8') do |io|
-        io.read(2) if Twine::Encoding.has_bom?(path)
-        formatter.read(io, lang)
+        if File.extname(path) == formatter.extension 
+          io.read(2) if Twine::Encoding.has_bom?(path)
+          formatter.read(io, lang)
+        end
       end
     end
 

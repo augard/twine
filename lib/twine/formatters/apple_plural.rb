@@ -1,3 +1,5 @@
+require 'plist'
+
 module Twine
   module Formatters
     class ApplePlural < Apple
@@ -51,7 +53,32 @@ module Twine
       end
 
       def read(io, lang)
-        raise NotImplementedError.new("Reading \".stringdict\" files not implemented yet")
+        result = Plist.parse_xml(io)
+        if result
+         result.each { |el|
+            key = ""
+            plurals_hash = Hash.new
+
+            el.each { |n| 
+              if n.kind_of? String
+                key = n
+              else n.kind_of? Hash
+                n.collect {|key,value| 
+                  if key != "NSStringLocalizedFormatKey" 
+                    value.collect {|key,value| 
+                      if key != "NSStringFormatSpecTypeKey" && key != "NSStringFormatValueTypeKey"
+                        plurals_hash[key] = value 
+                      end
+                    }
+                  end
+                }
+              end
+           }
+           if key != "" 
+              set_plural_translation_for_key(key, lang, plurals_hash)
+           end
+         }           
+        end
       end
 
       def tab(level)

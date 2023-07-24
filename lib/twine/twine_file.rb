@@ -236,7 +236,11 @@ module Twine
               f.puts "\t\tcomment = #{definition.raw_comment}"
             end
             @language_codes[1..-1].each do |lang|
-              write_value(definition, lang, f)
+              if definition.is_plural?
+                value = write_plural_value(definition, lang, f)
+              else
+                value = write_value(definition, lang, f)
+              end
             end
           end
         end
@@ -266,9 +270,8 @@ module Twine
           value = '`' + value + '`'
         end
         
-        file.puts "\t\t#{language} :#{pluralkey} = #{value}"
+        file.puts "\t\t#{language}:#{pluralkey} = #{value}"
       end
-      
       return pluralvalue
     end
   end

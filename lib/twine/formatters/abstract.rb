@@ -68,7 +68,7 @@ module Twine
           reference = @twine_file.definitions_by_key[definition.reference_key] if definition.reference_key
               
           if !reference or value != reference.plural_translations[lang]
-            definition.plural_translations[lang] = value
+            definition.plural_translations[lang] = plural_hash
           end
         elsif @options[:consume_all]
           Twine::stderr.puts "Adding new plural definition '#{key}' to twine file."
